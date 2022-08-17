@@ -24,7 +24,6 @@ func GenToken() (string, error)  {
 	c := Claims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(TokenExpireDuration).Unix(),
-			Issuer: "fileUploader",
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, c)
