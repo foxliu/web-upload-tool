@@ -63,7 +63,7 @@ func JWTMiddleware() func(context *gin.Context) {
 	return func(context *gin.Context) {
 		authHeader := context.Request.Header.Get("Authorization")
 		if authHeader == "" {
-			context.JSON(http.StatusOK, gin.H{
+			context.JSON(http.StatusForbidden, gin.H{
 				"code": 2003,
 				"msg": "Request header Authorization is nil",
 			})
@@ -72,7 +72,7 @@ func JWTMiddleware() func(context *gin.Context) {
 		}
 		parts := strings.SplitN(authHeader, " ", 2)
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			context.JSON(http.StatusOK, gin.H{
+			context.JSON(http.StatusForbidden, gin.H{
 				"code": 2004,
 				"msg": "Request header Authorizations error",
 			})
@@ -81,7 +81,7 @@ func JWTMiddleware() func(context *gin.Context) {
 		}
 		_, err := ParseToken(parts[1])
 		if err != nil {
-			context.JSON(http.StatusOK, gin.H{
+			context.JSON(http.StatusForbidden, gin.H{
 				"code": 2005,
 				"msg": "Invalid Token",
 			})
