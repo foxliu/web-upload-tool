@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
@@ -17,8 +18,18 @@ type Claims struct {
 }
 
 const TokenExpireDuration = time.Hour * 24 * 365  // 1 year
-var MySecrt = []byte("SomethingYouNeedToWrite...")
+var MySecrt = GenSecrt()
 var tokenString, _ = GenToken()
+// GenSecrt Generate secrt key
+func GenSecrt() []byte  {
+	b := make([]byte, 20)
+	_, err := rand.Read(b)
+	if err != nil {
+		fmt.Printf("Generate random secrt key error: %s\n", err.Error())
+		os.Exit(1)
+	}
+	return b
+}
 // GenToken Generate JWT
 func GenToken() (string, error)  {
 	c := Claims{
@@ -100,6 +111,7 @@ func main() {
 		} else {
 			dst := path.Join("./", file.Filename)
 			_ = context.SaveUploadedFile(file, dst)
+			fmt.Printf("%s | ", file.Filename)
 			context.JSON(http.StatusOK, gin.H{"msg": "upload success"})
 		}
 	})
