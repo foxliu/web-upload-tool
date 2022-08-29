@@ -102,7 +102,7 @@ func main() {
 	}
 	gin.SetMode("release")
 	router := gin.Default()
-	router.Use(JWTMiddleware())
+	//router.Use(JWTMiddleware())
 	router.MaxMultipartMemory = 1024 << 20
 	router.POST("/", func(context *gin.Context) {
 		file, err := context.FormFile("file")
@@ -114,6 +114,29 @@ func main() {
 			fmt.Printf("%s | ", file.Filename)
 			context.JSON(http.StatusOK, gin.H{"msg": "upload success"})
 		}
+	}, JWTMiddleware())
+	router.GET("/*filename", func(context *gin.Context) {
+		fileName := context.Param("filename")
+		fmt.Println(fileName)
+		if strings.Index(fileName, "..") != -1 {
+			context.JSON(http.StatusBadRequest, gin.H{"msg": "do not use .. in fileName"})
+			return
+		}
+		f := strings.TrimRight(fileName, "/")
+		filePath := "." + f
+		_, errOpenFile := os.Open(filePath)
+		if errOpenFile != nil {
+			fmt.Printf("%+v\n", errOpenFile.Error())
+			context.JSON(http.StatusNotFound, "/404")
+			return
+		}
+		outFileName := strings.Trim(fileName, "/")
+		fmt.Println(outFileName)
+		context.Header("Content-Type", "application/octet-stream")
+		context.Header("Content-Disposition", "attachment; filename="+outFileName)
+		context.Header("Content-Transfer-Encoding", "binary")
+		context.File("./" + outFileName)
+		return
 	})
 	fmt.Printf("Use curl like this to upload file:\ncurl --location --request POST 'localhost:%s/' " +
 		"--header 'Authorization: Bearer %s' --form 'file=@\"/your-file-path\"'\n", port, tokenString)
