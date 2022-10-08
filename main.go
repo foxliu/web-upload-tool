@@ -117,7 +117,7 @@ func main() {
 	}, JWTMiddleware())
 	router.GET("/*filename", func(context *gin.Context) {
 		fileName := context.Param("filename")
-		fmt.Println(fileName)
+		// fmt.Println(fileName)
 		if strings.Index(fileName, "..") != -1 {
 			context.JSON(http.StatusBadRequest, gin.H{"msg": "do not use .. in fileName"})
 			return
@@ -131,7 +131,7 @@ func main() {
 			return
 		}
 		outFileName := strings.Trim(fileName, "/")
-		fmt.Println(outFileName)
+		// fmt.Println(outFileName)
 		context.Header("Content-Type", "application/octet-stream")
 		context.Header("Content-Disposition", "attachment; filename="+outFileName)
 		context.Header("Content-Transfer-Encoding", "binary")
