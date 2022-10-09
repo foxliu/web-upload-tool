@@ -10,6 +10,9 @@ PACKAGES=`go list ./... | grep -v /vendor/`
 VETPACKAGES=`go list ./... | grep -v /vendor/ | grep -v /examples/`
 GOFILES=`find . -name "*.go" -type f -not -path "./vendor/*"`
 
+default:
+	@go build -o ${BINARY} -tags=jsoniter main.go
+
 list:
 	@echo ${PACKAGES}
 	@echo ${VETPACKAGES}
@@ -17,9 +20,6 @@ list:
 
 fmt:
 	@gofmt -s -w ${GOFILES}
-
-default:
-	@go build -o ${BINARY} -tags=jsoniter main.go
 
 build-linux:
 	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${BINARY}-linux -tags=jsoniter main.go
