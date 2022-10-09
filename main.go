@@ -4,24 +4,26 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
 )
 
 type Claims struct {
 	jwt.StandardClaims
 }
 
-const TokenExpireDuration = time.Hour * 24 * 365  // 1 year
+const TokenExpireDuration = time.Hour * 24 * 365 // 1 year
 var MySecrt = GenSecrt()
 var tokenString, _ = GenToken()
+
 // GenSecrt Generate secrt key
-func GenSecrt() []byte  {
+func GenSecrt() []byte {
 	b := make([]byte, 20)
 	_, err := rand.Read(b)
 	if err != nil {
@@ -30,23 +32,25 @@ func GenSecrt() []byte  {
 	}
 	return b
 }
+
 // GenToken Generate JWT
-func GenToken() (string, error)  {
+func GenToken() (string, error) {
 	c := Claims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(TokenExpireDuration).Unix(),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, c)
-	tokenS, err :=  token.SignedString(MySecrt)
+	tokenS, err := token.SignedString(MySecrt)
 	if err != nil {
 		fmt.Printf("Generate token error: %v\nExit and byebye\n", err.Error())
 		os.Exit(1)
 	}
 	return tokenS, nil
 }
+
 // ParseToken Parse JWT
-func ParseToken(tokenString string) (*Claims, error)  {
+func ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return MySecrt, nil
 	})
@@ -65,7 +69,7 @@ func JWTMiddleware() func(context *gin.Context) {
 		if authHeader == "" {
 			context.JSON(http.StatusForbidden, gin.H{
 				"code": 2003,
-				"msg": "Request header Authorization is nil",
+				"msg":  "Request header Authorization is nil",
 			})
 			context.Abort()
 			return
@@ -74,7 +78,7 @@ func JWTMiddleware() func(context *gin.Context) {
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
 			context.JSON(http.StatusForbidden, gin.H{
 				"code": 2004,
-				"msg": "Request header Authorizations error",
+				"msg":  "Request header Authorizations error",
 			})
 			context.Abort()
 			return
@@ -83,7 +87,7 @@ func JWTMiddleware() func(context *gin.Context) {
 		if err != nil {
 			context.JSON(http.StatusForbidden, gin.H{
 				"code": 2005,
-				"msg": "Invalid Token",
+				"msg":  "Invalid Token",
 			})
 			context.Abort()
 			return
@@ -102,6 +106,7 @@ func main() {
 	}
 	gin.SetMode("release")
 	router := gin.Default()
+	router.StaticFS("/", http.Dir("."))
 	//router.Use(JWTMiddleware())
 	router.MaxMultipartMemory = 1024 << 20
 	router.POST("/", func(context *gin.Context) {
@@ -115,30 +120,29 @@ func main() {
 			context.JSON(http.StatusOK, gin.H{"msg": "upload success"})
 		}
 	}, JWTMiddleware())
-	router.GET("/*filename", func(context *gin.Context) {
-		fileName := context.Param("filename")
-		// fmt.Println(fileName)
-		if strings.Index(fileName, "..") != -1 {
-			context.JSON(http.StatusBadRequest, gin.H{"msg": "do not use .. in fileName"})
-			return
-		}
-		f := strings.TrimRight(fileName, "/")
-		filePath := "." + f
-		_, errOpenFile := os.Open(filePath)
-		if errOpenFile != nil {
-			fmt.Printf("%+v\n", errOpenFile.Error())
-			context.JSON(http.StatusNotFound, "/404")
-			return
-		}
-		outFileName := strings.Trim(fileName, "/")
-		// fmt.Println(outFileName)
-		context.Header("Content-Type", "application/octet-stream")
-		context.Header("Content-Disposition", "attachment; filename="+outFileName)
-		context.Header("Content-Transfer-Encoding", "binary")
-		context.File("./" + outFileName)
-		return
-	})
-	fmt.Printf("Use curl like this to upload file:\ncurl --location --request POST 'localhost:%s/' " +
+	// router.GET("/*filename", func(context *gin.Context) {
+	// 	fileName := context.Param("filename")
+	// 	// fmt.Println(fileName)
+	// 	if strings.Contains(fileName, "..") {
+	// 		context.JSON(http.StatusBadRequest, gin.H{"msg": "do not use .. in fileName"})
+	// 		return
+	// 	}
+	// 	f := strings.TrimRight(fileName, "/")
+	// 	filePath := "." + f
+	// 	_, errOpenFile := os.Open(filePath)
+	// 	if errOpenFile != nil
+	// 		fmt.Printf("%+v\n", errOpenFile.Error())
+	// 		context.JSON(http.StatusNotFound, "/404")
+	// 		return
+	// 	}
+	// 	outFileName := strings.Trim(fileName, "/")
+	// 	// fmt.Println(outFileName)
+	// 	context.Header("Content-Type", "application/octet-stream")
+	// 	context.Header("Content-Disposition", "attachment; filename="+outFileName)
+	// 	context.Header("Content-Transfer-Encoding", "binary")
+	// 	context.File("./" + outFileName)
+	// })
+	fmt.Printf("Use curl like this to upload file:\ncurl --location --request POST 'localhost:%s/' "+
 		"--header 'Authorization: Bearer %s' --form 'file=@\"/your-file-path\"'\n", port, tokenString)
 	err := router.Run(fmt.Sprintf(":%s", port))
 	if err != nil {
